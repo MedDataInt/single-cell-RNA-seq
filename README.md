@@ -11,11 +11,25 @@ library(here)
 ```
 
 ## scRNA-seq quality control
-QC is to ensure that the data you are working with is reliable and that any low-quality cells or technical artifacts are filtered out before performing downstream analyses.
-a. Number of Genes Detected per Cell
-b. Number of Unique Molecules 
-c. Mitochondrial RNA Content
-d. Cell Doublets
+QC is to ensure that the data you are working with is reliable and that any low-quality cells or technical artifacts are filtered out before performing downstream analyses.  
+a. Number of Genes Detected per Cell  
+b. Number of Unique Molecules  
+c. Mitochondrial RNA Content  
+d. Cell Doublets  
+```r
+# filtering cells
+
+```
+
+## Normalization of the Data
+Normalize gene expression levels across cells to account for differences in sequencing depth. Sequencing depth refers to the total number of reads in a cell, which can vary across cells.The most common approach is total-count normalization, where each cell is scaled so that it has the same total count of reads. This makes it easier to compare cells with different sequencing depths.  
+```r
+# normalization
+
+```
+
+
+
 ## integrating scRNA-seq
 
 ## scRNA-seq clustering
