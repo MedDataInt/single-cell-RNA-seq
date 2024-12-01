@@ -10,6 +10,8 @@ library(here)
 # read data as seruat object
 ```
 
+## scRNA-seq quality control
+
 ## integrating scRNA-seq data
 
 ## scRNA-seq clustering
