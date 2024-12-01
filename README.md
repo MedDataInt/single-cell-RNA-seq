@@ -11,8 +11,12 @@ library(here)
 ```
 
 ## scRNA-seq quality control
-
-## integrating scRNA-seq data
+QC is to ensure that the data you are working with is reliable and that any low-quality cells or technical artifacts are filtered out before performing downstream analyses.
+a. Number of Genes Detected per Cell
+b. Number of Unique Molecules 
+c. Mitochondrial RNA Content
+d. Cell Doublets
+## integrating scRNA-seq
 
 ## scRNA-seq clustering
 
