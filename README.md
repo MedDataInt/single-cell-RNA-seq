@@ -103,12 +103,65 @@ dev.off()
 saveRDS(scramble, file = "scramble.rds")
 ```
 
-
 ## integrating scRNA-seq
+In this section, we aim to integrate three samples in different conditions together for subsequent analysis--scramble, mut1, and mut2. 
+Merge based on the normalized data.By default, merge() will combine the Seurat objects based on the raw count matrices, erasing any previously normalized and scaled data matrices. If you want to merge the normalized data matrices as well as the raw count matrices, 
+simply pass merge.data = TRUE. This should be done if the same normalization approach was applied to all objects. Without integration, cells are grouping both cel type and by underlying method, and cluster this dataset will return predominatly batch-specific clusters.
+While integrative analysis using IntegrateLayers can return a dimensional reduction that aims to co-embed shared cell types across batches. Five integration methods can be used:
 
-## scRNA-seq clustering
+* Anchor-based CCA integration (method=CCAIntegration)
+* Anchor-based RPCA integration (method=RPCAIntegration) --faster and more conservative 
+* Harmony (method=HarmonyIntegration)
+* FastMNN (method= FastMNNIntegration)
+* scVI (method=scVIIntegration)
+Once integrative analysis is complete, you can rejoin the layers - which collapses the individual datasets together and recreates the original counts and data layers. You will need to do this before performing any differential expression analysis. However, you can always resplit the layers in case you would like to reperform integrative analysis.
+```r
+# merge two mut samples first
+Mut_normalized <- merge(mut1, y= mut2, add.cell.ids = c('mut1', 'mut2'), project = 'mut', merge.data = TRUE)
+LayerData(Mut_normalized)[1:10, 1:15]
 
-## scRNA-seq cell type annotation
+# merge with scramble
+normalized <- merge(Mut_normalized, y= scramble, add.cell.ids = c('mut', 'scramble'), project = 'combined', merge.data = TRUE)
+LayerData(Marchf8_normalized)[1:10, 1:15]
+
+# Perform analysis without integration
+# run standard anlaysis workflow
+normalized <- NormalizeData(normalized)
+normalized <- FindVariableFeatures(normalized)
+normalized <- ScaleData(normalized)
+normalized <- RunPCA(normalized)
+print('done')
+
+# find clusters without integration
+normalized <- FindNeighbors(normalized, dims = 1:30, reduction = "pca")
+normalized <- FindClusters(normalized, resolution = 0.5, cluster.name = "unintegrated_clusters")
+normalized <- RunUMAP(normalized, dims = 1:30, reduction = "pca", reduction.name = "umap.unintegrated")
+
+pdf('combined_umap.unintegrated.pdf', width = 16, height = 8)
+DimPlot(normalized, reduction = "umap.unintegrated", group.by = c("orig.ident", "seurat_clusters"))
+dev.off()
+
+# Perform integration
+normalized <- IntegrateLayers(object = normalized, method = CCAIntegration, orig.reduction = "pca", new.reduction = "integrated.cca",
+                                   verbose = FALSE)
+print('done')
+
+
+# find clusters in integration
+normalized <- FindNeighbors(normalized, reduction = "integrated.cca", dims = 1:30)
+normalized <- FindClusters(normalized, resolution =0.5)
+normalized <- RunUMAP(normalized, dims = 1:30, reduction = "integrated.cca")
+print('done')
+
+pdf('Combined_umap.integrated_05.pdf', width = 16, height = 8)
+DimPlot_scCustom(Marchf8_normalized, reduction = "umap", group.by = c("orig.ident", "seurat_clusters"))
+dev.off()
+
+# re-join layers after integration
+normalized[["RNA"]] <- JoinLayers(normalized[["RNA"]]) 
+
+```
+
 
 ## scRNA-seq cell-cell interaction 
 
