@@ -59,30 +59,37 @@ scramble[["percent.mt"]] <- PercentageFeatureSet(scramble, pattern = "^mt-") # a
 scramble <- subset(scramble, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
 ```
 
-## Normalization of the Data
-Normalize gene expression levels across cells to account for differences in sequencing depth. Sequencing depth refers to the total number of reads in a cell, which can vary across cells.The most common approach is total-count normalization, where each cell is scaled so that it has the same total count of reads. This makes it easier to compare cells with different sequencing depths.  
+## Normalize and scale the Data
+Normalize gene expression levels across cells to account for differences in sequencing depth. Sequencing depth refers to the total number of reads in a cell, which can vary across cells.The most common approach is total-count normalization, where each cell is scaled so that it has the same total count of reads. This makes it easier to compare cells with different sequencing depths.  While scaling is a standard pre-processing step prior to dimensional reduction, it allow the mean expression across cells is 0, and variance across cells is 1, in this way, the highly expressed genes do not dominate.In this case, only the selected features are scaled.
 ```r
 # normalization
 scramble <- NormalizeData(scramble)
 
-#Identify highly variable feaures (features selection)
-scramble <- FindVariableFeatures(scramble, selection.method = "vst", nfeatures = 2000)
+#Identify highly variable feaures (they are highly expressed in some cells, and lowly expressed in others)
+scramble <- FindVariableFeatures(scramble, selection.method = "vst", nfeatures = 2000) # default
 
 # scaling the data
 scramble_all.genes <- rownames(scramble)
 scramble <- ScaleData(scramble, features = scramble_all.genes)
 ```
 ## Perform linear dimensional reduction 
+PCA will be performed on the scaled data.for the first principal components, the output is a list of genes with the most positive and negative loadings.
 ```r
 # linear dimensional reduction
 scramble <- RunPCA(scramble, features = VariableFeatures(object = scramble))
 ```
 
 ## Cluster the cells
+First need to decide how many components should we choose, then construct a KNN graph based on the euclidean distance in PCA space, and refine the edge weights between any two cells based on the shared overlap in their local neighborhoods (it takes previous defined dimensionality of dataset, first 20 PCs); Last, we need to apply modularity optimization tech (Louvain algorithm- default or SLM) to iteratively group cells togeter. The resolution can decide the granularity of the downstream clustering. 
 ```r
-scramble <- FindNeighbors(scramble, dims = 1:20)
+# determine the dimensionality of the dataset using ElbowPlot
+pdf('Elbow_scramble.pdf', width = 8, height = 8)
+ElbowPlot(scramble)
+dev.off()
+
+scramble <- FindNeighbors(scramble, dims = 1:20) # say 20,  
 scramble <- FindClusters(scramble, resolution = 0.5)
-head(Idents(scramble), 5)
+head(Idents(scramble), 5) # check on the cluster ID of the first 5 cells.
 ```
 ## Run non-linear dimensional reduction (UMAP/tSNE)
 ```r
