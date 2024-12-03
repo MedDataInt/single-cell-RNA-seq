@@ -92,6 +92,7 @@ scramble <- FindClusters(scramble, resolution = 0.5)
 head(Idents(scramble), 5) # check on the cluster ID of the first 5 cells.
 ```
 ## Run non-linear dimensional reduction (UMAP/tSNE)
+encourage to leverage techniques like UMAP for visualization, cells that are grouped together within graph-based clusters determined above should co-localize on these dimension reduction plots.
 ```r
 scramble <- RunUMAP(scramble, dims = 1:20)
 pdf('UMAP_scramble.pdf', width = 8, height = 8)
