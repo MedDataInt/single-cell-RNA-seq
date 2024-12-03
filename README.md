@@ -158,10 +158,33 @@ DimPlot_scCustom(Marchf8_normalized, reduction = "umap", group.by = c("orig.iden
 dev.off()
 
 # re-join layers after integration
-normalized[["RNA"]] <- JoinLayers(normalized[["RNA"]]) 
+# normalized[["RNA"]] <- JoinLayers(normalized[["RNA"]]) 
 
 ```
+## Finding differentially expressed expression (DEs)
+```r
+# find differentially expression
+normalized <- JoinLayers(normalized, verbose = TRUE)
+de = FindAllMarkers(normalized, only.pos = TRUE)
 
+csv_file <- "Combined_differential_genes_05.csv"
+write.csv(de, file = csv_file, row.names = FALSE)
+
+# Find markers and limit to those expressed in greater than 25% of target population and visulize
+all_markers <- de %>%
+  Add_Pct_Diff() %>%
+  filter(pct_diff > 0.25)
+top_markers <- Extract_Top_Markers(marker_dataframe = all_markers, num_genes = 7, named_vector = FALSE,
+                                   make_unique = TRUE)
+pdf('bubble05.pdf', width = 8.5, height = 14)
+Clustered_DotPlot(seurat_object = normalized, features = top_markers, k=16)
+dev.off()
+
+# check on specific gene expression in umap
+pdf('combined_CD4.pdf', width = 5, height = 5)
+FeaturePlot_scCustom(seurat_object = normalized,  reduction = "umap",features = "Cd4",alpha_exp = 0.75, pt.size = 0.8)
+dev.off()
+```
 
 ## scRNA-seq cell-cell interaction 
 
