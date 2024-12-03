@@ -103,7 +103,7 @@ dev.off()
 saveRDS(scramble, file = "scramble.rds")
 ```
 
-## integrating scRNA-seq
+## Integrating scRNA-seq
 In this section, we aim to integrate three samples in different conditions together for subsequent analysis--scramble, mut1, and mut2. 
 Merge based on the normalized data.By default, merge() will combine the Seurat objects based on the raw count matrices, erasing any previously normalized and scaled data matrices. If you want to merge the normalized data matrices as well as the raw count matrices, 
 simply pass merge.data = TRUE. This should be done if the same normalization approach was applied to all objects. Without integration, cells are grouping both cel type and by underlying method, and cluster this dataset will return predominatly batch-specific clusters.
