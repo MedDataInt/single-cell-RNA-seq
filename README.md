@@ -29,6 +29,10 @@ library(patchwork)
 library(viridis)
 library(qs)
 library(DropletUtils)
+library(CellChat)
+library(patchwork)
+options(stringsAsFactors = FALSE)
+library(base)
 ```
 ## preparing data for scRNA-seq
 h5 file: a type of file format used to store large amounts of data in a hierarchical manner. This makes it easy to store and organize complex datasets. In scRNA-seq, you might have groups for "gene expression", "cell metadata", and "quality control" within the same .h5 file.
@@ -214,7 +218,7 @@ csv_file <- "mut2_C7_DE.csv"
 write.csv(mut2_C7_DE, file = csv_file, row.names = TRUE)
 ```
 ## scRNA-seq gene signature/sets analysis
-Calculate the average expression levels of each program (cluster) on single cell level, subtracted by the aggregated expression of control feature sets. All analyzed features are binned based on averaged expression, and the control features are randomly selected from each bin. detail can be found here https://satijalab.org/seurat/reference/addmodulescore
+Calculate the average expression levels of each program (cluster) on single cell level, subtracted by the aggregated expression of control feature sets. All analyzed features are binned based on averaged expression, and the control features are randomly selected from each bin. detail can be found [here](https://satijalab.org/seurat/reference/addmodulescore)
 ```r
 # antigen_processing_and_presentation, gene list can be download from KEGG database or other dataset 
 data <- read.csv("antigen_processing_and_presentation_mus.csv")
@@ -238,7 +242,79 @@ data <- data.frame(orig.ident = normalized@meta.data$orig.ident,
 write.csv(data, file = "normalized_antigen_marker_data.csv", row.names = FALSE)
 ```
 ## scRNA-seq cell-cell interaction 
+there are many approaches allow us to do the cell-cell interaction, and [this paper](https://www.nature.com/articles/s41467-022-30755-0) is good review regarding the CCI, and in this section, I will show how to perform cell-cell interaction in single cells using CellChat.
+```r
+# Label the clusters 
+normalized@meta.data$labels <- NA
+normalized@meta.data$labels[integrated@meta.data$seurat_clusters %in% c(5,14)] <- "B"
+normalized@meta.data$labels[integrated@meta.data$seurat_clusters %in% c(1, 2, 3)] <- "MDSCs"
+normalized@meta.data$labels[integrated@meta.data$seurat_clusters %in% c(4,13)] <- "macrophages"
+normalized@meta.data$labels[integrated@meta.data$seurat_clusters %in% c(10)] <- "NK"
+normalized@meta.data$labels[integrated@meta.data$seurat_clusters %in% c(7)] <- "CD8_T"
+normalized@meta.data$labels[integrated@meta.data$seurat_clusters %in% c(6,9)] <- "CD4_T"
+normalized@meta.data$labels[integrated@meta.data$seurat_clusters %in% c(11)] <- "DCs"
+normalized@meta.data$labels[integrated@meta.data$seurat_clusters %in% c(12)] <- "epithelial"
+normalized@meta.data$labels[integrated@meta.data$seurat_clusters %in% c(15)] <- "fibroblasts"
+normalized@meta.data$labels[integrated@meta.data$seurat_clusters %in% c(0)] <- "tumor"
+normalized@meta.data$labels[integrated@meta.data$seurat_clusters %in% c(8)] <- "eosinophils"
 
-## scRNA-seq gene differential expression 
+# prepare the input data, we work on mut2 sample only here
+data.input <- normalized@assays$RNA$data
+meta <- normalized@meta.data 
+cell.use<- rownames(meta)[meta$orig.ident == 'mut2'] # extract the cell names 
+data.input <- data.input[, cell.use]
+meta <- meta[cell.use, ]
+cellchat <- createCellChat(object = data.input, meta = meta, group.by = "labels")
 
+# check on the database
+CellChatDB <- CellChatDB.mouse # use  if running on mouse data
+showDatabaseCategory(CellChatDB)
+# Show the structure of the database
+dplyr::glimpse(CellChatDB$interaction)
+
+CellChatDB.use <- CellChatDB
+cellchat@DB <- CellChatDB.use
+
+# subset the expression data of signaling genes for saving computation cost
+cellchat <- subsetData(cellchat) # This step is necessary even if using the whole database
+future::plan("multiprocess", workers = 4) # do parallel
+cellchat <- identifyOverExpressedGenes(cellchat)
+cellchat <- identifyOverExpressedInteractions(cellchat)
+
+cellchat <- computeCommunProb(cellchat)
+# Filter out the cell-cell communication if there are only few number of cells in certain cell groups
+cellchat <- filterCommunication(cellchat, min.cells = 10)
+
+df.net <- subsetCommunication(cellchat) # returns a data frame consisting of all the inferred cell-cell communications at the level of ligands/receptors 
+head(df.net)
+write.csv(df.net, file = "mut2_df_net.csv", row.names = FALSE)
+
+df.net1 <- subsetCommunication(cellchat, slot.name = "netP") # to access the the inferred communications at the level of signaling pathways
+head(df.net1)
+write.csv(df.net1, file = "mut2_df_net1.csv", row.names = FALSE)
+
+cellchat <- computeCommunProbPathway(cellchat)
+str(cellchat@net)
+str(cellchat@netP)
+cellchat <- aggregateNet(cellchat)
+
+pdf("mut2_CCI_default.pdf")
+groupSize <- as.numeric(table(cellchat@idents))
+par(mfrow = c(1,2), xpd=TRUE)
+netVisual_circle(cellchat@net$count, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions")
+netVisual_circle(cellchat@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+dev.off()
+
+# we can examine the signaling sent from each cell group
+pdf("mut2_CCI_default_individal.pdf")
+mat <- cellchat@net$weight
+par(mfrow = c(3,4), xpd=TRUE)
+for (i in 1:nrow(mat)) {
+  mat2 <- matrix(0, nrow = nrow(mat), ncol = ncol(mat), dimnames = dimnames(mat))
+  mat2[i, ] <- mat[i, ]
+  netVisual_circle(mat2, vertex.weight = groupSize, weight.scale = T, edge.weight.max = max(mat), title.name = rownames(mat)[i])
+}
+dev.off()
+
+```
 ## scRNA-seq interactive visulization
