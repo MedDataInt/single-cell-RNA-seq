@@ -157,6 +157,14 @@ pdf('Combined_umap.integrated_05.pdf', width = 16, height = 8)
 DimPlot_scCustom(Marchf8_normalized, reduction = "umap", group.by = c("orig.ident", "seurat_clusters"))
 dev.off()
 
+# calculate the cell number in each of cluster 
+table(Idents(normalized))
+md <- normalized@meta.data %>% as.data.table
+md[, .N, by = c("orig.ident", "seurat_clusters")]
+cellcount = md[, .N, by = c("orig.ident", "seurat_clusters")]
+file_name <- "Combine_integrated_metadata_cellcount05.csv"
+fwrite(cellcount, file = file_name)
+
 # re-join layers after integration
 # normalized[["RNA"]] <- JoinLayers(normalized[["RNA"]]) 
 
