@@ -128,6 +128,9 @@ LayerData(Mut_normalized)[1:10, 1:15]
 normalized <- merge(Mut_normalized, y= scramble, add.cell.ids = c('mut', 'scramble'), project = 'combined', merge.data = TRUE)
 LayerData(Marchf8_normalized)[1:10, 1:15]
 
+# alternatively, to merge more than two objects, pass one to x and a list of objects to y
+# combined <- merge(x = scramble, y = c(mut1, mut2))
+
 # Perform analysis without integration
 # run standard anlaysis workflow
 normalized <- NormalizeData(normalized)
