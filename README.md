@@ -214,7 +214,29 @@ csv_file <- "mut2_C7_DE.csv"
 write.csv(mut2_C7_DE, file = csv_file, row.names = TRUE)
 ```
 ## scRNA-seq gene signature/sets analysis
+Calculate the average expression levels of each program (cluster) on single cell level, subtracted by the aggregated expression of control feature sets. All analyzed features are binned based on averaged expression, and the control features are randomly selected from each bin. detail can be found here https://satijalab.org/seurat/reference/addmodulescore
+```r
+# antigen_processing_and_presentation, gene list can be download from KEGG database or other dataset 
+data <- read.csv("antigen_processing_and_presentation_mus.csv")
+gene_list <- data$Gene
+print(gene_list)
 
+antigen_marker <-list(gene_list)
+normalized <- AddModuleScore(normalized, features = antigen_marker, ctrl = 5, name = 'antigen_marker')
+print(head(normalized@meta.data)) # check the meta.data 
+
+# vizualize the gene set in the s 
+pdf('antigen_Split1d.pdf', width = 6, height = 3)
+FeaturePlot(normalized,features = "antigen_marker1", label = FALSE, split.by = "orig.ident", cols = viridis(11), pt.size = 0.8, repel = TRUE) 
+dev.off()
+
+# Extract orig.ident and autophage_marker1 from Seurat object
+data <- data.frame(orig.ident = normalized@meta.data$orig.ident, 
+                   antigen_marker1 = normalized@meta.data$antigen_marker1)
+
+# Write the data to a CSV file
+write.csv(data, file = "normalized_antigen_marker_data.csv", row.names = FALSE)
+```
 ## scRNA-seq cell-cell interaction 
 
 ## scRNA-seq gene differential expression 
