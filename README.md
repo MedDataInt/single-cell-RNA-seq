@@ -192,11 +192,30 @@ dev.off()
 pdf('combined_CD4.pdf', width = 5, height = 5)
 FeaturePlot_scCustom(seurat_object = normalized,  reduction = "umap",features = "Cd4",alpha_exp = 0.75, pt.size = 0.8)
 dev.off()
+saveRDS(normalized, file = "normalized.rds")
 ```
+## subcluster analysis and identify the differential expressed genes between groups
+In this section, if you are interested in a certain specific cluster, and want to do the subsequent cluster analysis on this cluster, then you can go continue the cluster just like what have done above. otherwise if you are interested on the DEGs of this cluster between the groups, we can follow this chunk of script.
+```r
+path_to_rds <-'normalized.rds'
+normalized<-readRDS(path_to_rds)
+C7 <- subset(normalized, subset = seurat_clusters %in% c(7))
+
+Idents(C7) <- CD8@meta.data$orig.ident
+
+# volin plot on the comparation of PD1 expression 
+pdf('C7_Pdcd1.pdf', width =5, height = 6)
+VlnPlot(C7, split.by = 'orig.ident', features = 'Pdcd1', pt.size = 0.1,) + NoLegend()
+dev.off()
+
+# Find markers, export the full different expressed genes list 
+mut2_C7_DE <- FindMarkers(C7, ident.1 = "mut2", ident.2 = "scramble", verbose = TRUE, subset.ident = "0", logfc.threshold = log(1))
+csv_file <- "mut2_C7_DE.csv"
+write.csv(mut2_C7_DE, file = csv_file, row.names = TRUE)
+```
+## scRNA-seq gene signature/sets analysis
 
 ## scRNA-seq cell-cell interaction 
-
-## scRNA-seq gene signature/sets analysis
 
 ## scRNA-seq gene differential expression 
 
