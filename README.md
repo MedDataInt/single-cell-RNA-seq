@@ -1,6 +1,8 @@
 # scRNA-seq
 This repository is designed to help beginners learn the fundamental aspects of scRNA-seq, with a focus on both theoretical knowledge and practical applications.  
-This is based on one of our published project.
+This is based on one of our published project.  
+- R folder contain the common functions are needed for processing data  
+- script folder contain the script for processing data
 ```r
 # loading library
 library(Seurat)
